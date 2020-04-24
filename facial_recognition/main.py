@@ -135,6 +135,8 @@ def build_model_keras(hp):
 
 # predicts the testing results and prints them using a model passed as an argument
 def recognize(model, testing_data):
+    TARGET_THRESHOLD = 0.77
+
     for data in testing_data:
         img = data[0]
         img_index = data[1]
@@ -142,7 +144,7 @@ def recognize(model, testing_data):
         data = img.reshape(-1, 80, 80, 1)
 
         model_output = model.predict([data])[0]
-        print(f"{img_index[:8]} {(1 - model_output[0]):.4f} {1 if 1 - model_output[0] > 0.5 else 0}")
+        print(f"{img_index[:8]} {(1 - model_output[0]):.4f} {1 if 1 - model_output[0] > TARGET_THRESHOLD else 0}")
 
 if __name__ == "__main__":
     # prepare data
