@@ -4,6 +4,7 @@ non_target_train/
 target_dev/
 target_train/
 validation_dir/
+test_dir/
 raw/
 train_dir/
 venv/
@@ -12,3 +13,7 @@ face_recognition.model.*
 test_data.npy
 train_data.npy
 validation_data.npy
+testing_data.npy
+log_dir/
+best_model.h5
+1587741009/
