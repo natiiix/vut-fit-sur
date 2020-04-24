@@ -8,6 +8,9 @@ from tflearn.layers.conv import conv_2d, max_pool_2d
 from tflearn.layers.core import input_data, dropout, fully_connected
 from tflearn.layers.estimator import regression
 
+from tensorflow import keras
+from tensorflow.keras.layers import Dense, Conv2D, Activation, Flatten, MaxPooling2D
+
 TRAIN_DIR = "train_dir"
 VALIDATION_DIR = "validation_dir"
 TEST_DIR = "test_dir"
@@ -80,6 +83,28 @@ def build_model_tflearn():
 
     return model
 
+def build_model_keras():
+    model = keras.models.Sequential()
+
+    model.add(Conv2D(32, (3, 3), input_shape=[80, 80, 1]))
+    model.add(Activation("relu"))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+
+    model.add(Conv2D(32, (3, 3), input_shape=[80, 80, 1]))
+    model.add(Activation("relu"))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+
+    model.add(Flatten())
+
+    model.add(Dense(10))
+    model.add(Activation("softmax"))
+
+    model.compile(optimizer="adam",
+                  loss="sparse_categorical_crossentropy",
+                  metrics=["accuracy"])
+
+    return model
+
 def load_model():
     if os.path.exists(MODEL_NAME + ".meta"):
         model.load(MODEL_NAME)
@@ -96,6 +121,7 @@ def recognize(model, testing_data):
         print(str(img_index) + ": " + str(model_output[0]))
 
 if __name__ == "__main__":
+    # prepare data
     #train_data = create_data(TRAIN_DIR, "train_data.npy")
     train_data = np.load("train_data.npy", allow_pickle=True)
         
@@ -105,17 +131,38 @@ if __name__ == "__main__":
     #testing_data = process_test_data()
     #testing_data = np.load("testing_data.npy", allow_pickle=True)
 
-    model = build_model_tflearn()
-    model = load_model()
-
+    # prepare training data to fit the model
     train_X = np.array([i[0] for i in train_data]).reshape(-1, 80, 80, 1)
     train_Y = [i[1] for i in train_data]
 
+    # prepare validation data to fit into the model
     validation_X = np.array([i[0] for i in validation_data]).reshape(-1, 80, 80, 1)
     validation_Y = [i[1] for i in validation_data]
 
-    model.fit({'input': train_X}, {'targets': train_Y}, n_epoch = 3, validation_set=({'input': validation_X}, {'targets': validation_Y}), snapshot_step=500, show_metric=True, run_id=MODEL_NAME)
+    train_Y = list()
 
-    model.save(MODEL_NAME)
+    for i in train_data:
+        train_Y.append(i[1][0])
+
+    train_Y = np.asarray(train_Y)
+
+    validation_Y = list()
+    for i in validation_data:
+        validation_Y.append(i[1][0])
+    validation_Y = np.asarray(validation_Y)
+
+    # get model
+    #model = build_model_tflearn()
+    model = build_model_keras()
+    #model = load_model()
+
+    # tflearn model
+    #model.fit({'input': train_X}, {'targets': train_Y}, n_epoch = 3, validation_set=({'input': validation_X}, {'targets': validation_Y}), snapshot_step=500, show_metric=True, run_id=MODEL_NAME)
+
+    # keras model
+    model.fit(train_X, train_Y, batch_size=64, epochs=3, validation_data=(validation_X, validation_Y))
+
+    # save model
+    #model.save(MODEL_NAME)
 
     #recognize(model, testing_data)
