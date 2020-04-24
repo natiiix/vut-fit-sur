@@ -10,10 +10,18 @@ from tflearn.layers.estimator import regression
 
 from tensorflow import keras
 from tensorflow.keras.layers import Dense, Conv2D, Activation, Flatten, MaxPooling2D
+from tensorflow.keras import optimizers
+
+from kerastuner.tuners import RandomSearch
+from kerastuner.engine.hyperparameters import HyperParameters
+from tensorflow.keras.models import load_model
+
+import time
 
 TRAIN_DIR = "train_dir"
 VALIDATION_DIR = "validation_dir"
 TEST_DIR = "test_dir"
+LOG_DIR = f"{int(time.time())}"
 
 MODEL_NAME = "face_recognition.model"
 LR = 1e-3
@@ -40,15 +48,12 @@ def create_data(d, name):
 def process_test_data():
     testing_data = list()
 
-    i = 0
     for img in os.listdir(TEST_DIR):
         path = os.path.join(TEST_DIR, img)
-
+        name = img
         img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-        img_index = i
 
-        testing_data.append([np.array(img), img_index])
-        i += 1
+        testing_data.append([np.array(img), name])
     
     shuffle(testing_data)
     np.save("testing_data.npy", testing_data)
@@ -58,20 +63,20 @@ def process_test_data():
 def build_model_tflearn():
     convnet = input_data(shape = [None, 80, 80, 1], name = "input")
 
-    convnet = conv_2d(convnet, 32, 5, activation='relu')
-    convnet = max_pool_2d(convnet, 5)
-
-    convnet = conv_2d(convnet, 64, 5, activation='relu')
-    convnet = max_pool_2d(convnet, 5)
-
     convnet = conv_2d(convnet, 128, 5, activation='relu')
     convnet = max_pool_2d(convnet, 5)
 
-    convnet = conv_2d(convnet, 64, 5, activation='relu')
-    convnet = max_pool_2d(convnet, 5)
+    #convnet = conv_2d(convnet, 64, 5, activation='relu')
+    #convnet = max_pool_2d(convnet, 5)
 
-    convnet = conv_2d(convnet, 32, 5, activation='relu')
-    convnet = max_pool_2d(convnet, 5)
+    #convnet = conv_2d(convnet, 128, 5, activation='relu')
+    #convnet = max_pool_2d(convnet, 5)
+
+    #convnet = conv_2d(convnet, 64, 5, activation='relu')
+    #convnet = max_pool_2d(convnet, 5)
+
+    #convnet = conv_2d(convnet, 32, 5, activation='relu')
+    #convnet = max_pool_2d(convnet, 5)
 
     convnet = fully_connected(convnet, 1024, activation='relu')
     convnet = dropout(convnet, 0.8)
@@ -83,16 +88,16 @@ def build_model_tflearn():
 
     return model
 
-def build_model_keras():
+def build_model_keras(hp):
     model = keras.models.Sequential()
 
-    model.add(Conv2D(32, (3, 3), input_shape=[80, 80, 1]))
+    model.add(Conv2D(hp.Int("input_units", 16, 256, 16), (3, 3), input_shape=[80, 80, 1]))
     model.add(Activation("relu"))
     model.add(MaxPooling2D(pool_size=(2, 2)))
 
-    model.add(Conv2D(32, (3, 3), input_shape=[80, 80, 1]))
-    model.add(Activation("relu"))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
+    for i in range(hp.Int("n_layers", 1, 8)):
+        model.add(Conv2D(hp.Int(f"conv_{i}_units", 16, 256, 16), (3, 3), input_shape=[80, 80, 1]))
+        model.add(Activation("relu"))
 
     model.add(Flatten())
 
@@ -105,7 +110,7 @@ def build_model_keras():
 
     return model
 
-def load_model():
+def load_model_tflearn():
     if os.path.exists(MODEL_NAME + ".meta"):
         model.load(MODEL_NAME)
         return model
@@ -115,10 +120,10 @@ def recognize(model, testing_data):
         img = data[0]
         img_index = data[1]
 
-        data = img.reshape(80, 80, 1)
+        data = img.reshape(-1, 80, 80, 1)
 
         model_output = model.predict([data])[0]
-        print(str(img_index) + ": " + str(model_output[0]))
+        print(str(img_index[:8]) + " " + str(1 - model_output[0]) + " " + str(1 if 1 - model_output[0] > 0.5 else 0))
 
 if __name__ == "__main__":
     # prepare data
@@ -129,7 +134,7 @@ if __name__ == "__main__":
     validation_data = np.load("validation_data.npy", allow_pickle=True)
 
     #testing_data = process_test_data()
-    #testing_data = np.load("testing_data.npy", allow_pickle=True)
+    testing_data = np.load("testing_data.npy", allow_pickle=True)
 
     # prepare training data to fit the model
     train_X = np.array([i[0] for i in train_data]).reshape(-1, 80, 80, 1)
@@ -140,10 +145,8 @@ if __name__ == "__main__":
     validation_Y = [i[1] for i in validation_data]
 
     train_Y = list()
-
     for i in train_data:
         train_Y.append(i[1][0])
-
     train_Y = np.asarray(train_Y)
 
     validation_Y = list()
@@ -151,18 +154,25 @@ if __name__ == "__main__":
         validation_Y.append(i[1][0])
     validation_Y = np.asarray(validation_Y)
 
-    # get model
+    # get model tflearn
     #model = build_model_tflearn()
-    model = build_model_keras()
-    #model = load_model()
+    #model = load_model_tflearn()
 
-    # tflearn model
-    #model.fit({'input': train_X}, {'targets': train_Y}, n_epoch = 3, validation_set=({'input': validation_X}, {'targets': validation_Y}), snapshot_step=500, show_metric=True, run_id=MODEL_NAME)
+    # tflearn model training
+    #model.fit({'input': train_X}, {'targets': train_Y}, n_epoch = 5, validation_set=({'input': validation_X}, {'targets': validation_Y}), snapshot_step=500, show_metric=True, run_id=MODEL_NAME)
 
-    # keras model
-    model.fit(train_X, train_Y, batch_size=64, epochs=3, validation_data=(validation_X, validation_Y))
+    # keras model tuning
+    #keras_tuner = RandomSearch(
+    #    build_model_keras,
+    #    objective="val_acc",
+    #    max_trials=70,
+    #    executions_per_trial=3,
+    #    directory=LOG_DIR
+    #)
 
-    # save model
-    #model.save(MODEL_NAME)
+    #keras_tuner.search(x=train_X, y=train_Y, epochs=10, batch_size=16, validation_data=(validation_X, validation_Y))
 
-    #recognize(model, testing_data)
+    #keras_tuner.get_best_models()[0].save("best_model.h5")
+
+    model = load_model("best_model.h5")
+    recognize(model, testing_data)
