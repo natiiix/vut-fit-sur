@@ -23,12 +23,20 @@ VALIDATION_DIR = "validation_dir"
 TEST_DIR = "test_dir"
 LOG_DIR = f"{int(time.time())}"
 
+# target identifier
+TARGET_LABEL = "m429"
+
+# THESE ARE NOT USED IN THE FINAL SUBMISSION
+# tflearn variables
 MODEL_NAME = "face_recognition.model"
 LR = 1e-3
 
+# labeling training and validation data
 def label_img(img):
-    return [1, 0] if img.startswith("m429") else [0, 1]
+    return [1, 0] if img.startswith(TARGET_LABEL) else [0, 1]
 
+# process training or validation data and save it
+# returns the data
 def create_data(d, name):
     data = list()
 
@@ -45,6 +53,8 @@ def create_data(d, name):
 
     return data
 
+# process testing data and save it
+# returns the testing data 
 def process_test_data():
     testing_data = list()
 
@@ -60,6 +70,10 @@ def process_test_data():
 
     return testing_data
 
+# THIS FUNCTION IS NOT USED IN THE FINAL SUBMISSION
+# this function builds tflearn model
+# This network was intended to be manually tuned, but I failed to find a working configuration
+# so it was not used in the end, but I decided to keep it in the source code
 def build_model_tflearn():
     convnet = input_data(shape = [None, 80, 80, 1], name = "input")
 
@@ -88,6 +102,15 @@ def build_model_tflearn():
 
     return model
 
+# THIS FUNCTION IS NOT USED IN THE FINAL SUBMISSION
+# loads tflearn model
+def load_model_tflearn():
+    if os.path.exists(MODEL_NAME + ".meta"):
+        model.load(MODEL_NAME)
+        return model
+
+# this function builds keras model using keras tuner
+# returns the model
 def build_model_keras(hp):
     model = keras.models.Sequential()
 
@@ -110,11 +133,7 @@ def build_model_keras(hp):
 
     return model
 
-def load_model_tflearn():
-    if os.path.exists(MODEL_NAME + ".meta"):
-        model.load(MODEL_NAME)
-        return model
-
+# predicts the testing results and prints them using a model passed as an argument
 def recognize(model, testing_data):
     for data in testing_data:
         img = data[0]
@@ -123,7 +142,7 @@ def recognize(model, testing_data):
         data = img.reshape(-1, 80, 80, 1)
 
         model_output = model.predict([data])[0]
-        print(str(img_index[:8]) + " " + str(1 - model_output[0]) + " " + str(1 if 1 - model_output[0] > 0.5 else 0))
+        print(f"{img_index[:8]} {(1 - model_output[0]):.4f} {1 if 1 - model_output[0] > 0.5 else 0}")
 
 if __name__ == "__main__":
     # prepare data
@@ -138,23 +157,25 @@ if __name__ == "__main__":
 
     # prepare training data to fit the model
     train_X = np.array([i[0] for i in train_data]).reshape(-1, 80, 80, 1)
-    train_Y = [i[1] for i in train_data]
-
-    # prepare validation data to fit into the model
-    validation_X = np.array([i[0] for i in validation_data]).reshape(-1, 80, 80, 1)
-    validation_Y = [i[1] for i in validation_data]
 
     train_Y = list()
     for i in train_data:
         train_Y.append(i[1][0])
     train_Y = np.asarray(train_Y)
 
+    # prepare validation data to fit into the model
+    validation_X = np.array([i[0] for i in validation_data]).reshape(-1, 80, 80, 1)
+
     validation_Y = list()
     for i in validation_data:
         validation_Y.append(i[1][0])
     validation_Y = np.asarray(validation_Y)
 
-    # get model tflearn
+    # TFLEARN ONLY
+    #train_Y = [i[1] for i in train_data]
+    #validation_Y = [i[1] for i in validation_data]
+
+    # tflearn model building
     #model = build_model_tflearn()
     #model = load_model_tflearn()
 
@@ -170,9 +191,13 @@ if __name__ == "__main__":
     #    directory=LOG_DIR
     #)
 
+    # finding the best keras model
     #keras_tuner.search(x=train_X, y=train_Y, epochs=10, batch_size=16, validation_data=(validation_X, validation_Y))
 
+    # get the best keras model or save it
+    #model = keras_tuner.get_best_models()[0]
     #keras_tuner.get_best_models()[0].save("best_model.h5")
 
     model = load_model("best_model.h5")
+    
     recognize(model, testing_data)
