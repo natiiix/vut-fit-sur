@@ -18,3 +18,17 @@ Audio soubory musí být umístěny ve složce ~/data/eval/ a to ve formátu WAV
 Závislosti jsou specifikovány v souboru ~/requirements.txt.
 Samotná logika je implementována ve skriptu ~/__main__.py.
 Všechny cesty jsou relativní vůči hlavnímu adresáři daného klasifikátoru, ne domovskému adresáři uživatele.
+
+
+Rozpoznávání hlasů metodou GMM (audio_gmm)
+===========================================
+
+Po uspesnem naimportovani knihoven/modulu numpy, io, ikrlib dojde k nacteni dat na trenovani a dat na naslednou evaluaci.
+Extrakce priznaku ze zvukovych nahravek s priponou *.wav je provedena za pomoci funkce z knihovny ikrlib ktera nam vytvori za pomoci segmentace,
+Fourieroveho spektra, banky filtru, logaritmizace a MFCC slovnik obsahujici dvojici nazvu souboru a matice hodnot.
+Nasledne budou matice slouceny do jednoho velkeho seznamu.
+Po nastaveni promennych obou trid target, non_target (napr. apriorni pravdepodobnosti tridy, pocet komponent GMM tridy, stredni hodnoty, kovariancni matici, vahy komponent) se provede N pocet iteraci samotneho trenovani,
+kde se s maximalni verohodnosti urci nove hodnoty jiz drive zminenych promennych, ktere by mely zapricinit presnejsi odhad gaussovek.
+Ted uz jen zbyva vyhodnotit evaluacni data s jiz natrenovanym GM modelem a vypsat vysledek do souboru.
+
+Doporucuji spustit na novejsi verzi windows s python3.8.2
