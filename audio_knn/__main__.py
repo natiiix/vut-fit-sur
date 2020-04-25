@@ -1,11 +1,14 @@
 from os import listdir, path
+import pickle
 
 import numpy as np
 from scipy.io import wavfile
 from scipy.signal import spectrogram
 from scipy.spatial.distance import euclidean as euclid_dist
 
-DATA_DIR = path.join(path.dirname(path.abspath(__file__)), 'data')
+MODULE_DIR = path.dirname(path.abspath(__file__))
+PICKLE_PATH = path.join(MODULE_DIR, 'known_wavs.pickle')
+DATA_DIR = path.join(MODULE_DIR, 'data')
 
 LABEL_TARGET = 1
 LABEL_NON_TARGET = 0
@@ -37,12 +40,20 @@ def predict(known, unknown):
 
 
 if __name__ == "__main__":
-    known_wavs = []
-    known_wavs.extend(read_wav_files('target_train', LABEL_TARGET))
-    known_wavs.extend(read_wav_files('non_target_train', LABEL_NON_TARGET))
-    known_wavs.extend(read_wav_files('target_dev', LABEL_TARGET))
-    known_wavs.extend(read_wav_files('non_target_dev', LABEL_NON_TARGET))
+    if path.isfile(PICKLE_PATH):
+        with open(PICKLE_PATH, "rb") as f:
+            known_wavs = pickle.load(f)
 
-    for w in read_wav_files('eval', 'unknown'):
+    else:
+        known_wavs = []
+        known_wavs.extend(read_wav_files('target_train', LABEL_TARGET))
+        known_wavs.extend(read_wav_files('non_target_train', LABEL_NON_TARGET))
+        known_wavs.extend(read_wav_files('target_dev', LABEL_TARGET))
+        known_wavs.extend(read_wav_files('non_target_dev', LABEL_NON_TARGET))
+
+        with open(PICKLE_PATH, "wb") as f:
+            pickle.dump(known_wavs, f)
+
+    for w in read_wav_files('eval', None):
         pred, confidence = predict(known_wavs, w)
         print(w.name.rsplit('.', 1)[0], round(confidence if pred is LABEL_TARGET else (1 - confidence), 2), pred)
