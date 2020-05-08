@@ -27,12 +27,18 @@
 	\end{titlepage}
 
 	\section{Rozpoznávání obličejů}
-		
+		\subsection{Klasifikátor}
+			Původní plán byl vytvořit klasifikátor obličejů pomocí knihovny TFLearn. Úspěšně jsem model vytvořil a otestoval. Bohužel jsem ale nemohl najít optimální konfiguraci neuronové sítě a model nefungoval úplně správně. Většinou označil úplně všechny data jako non-target a výsledná přesnost byla tedy 0.8571, což je ale poměr obrázků non-targetu ku všem datům. Tento model tedy není funkční a ve finálním odevzdání nebyl použit. Z kódu ovšem odstraněn nebyl, byl pouze zakomentován a všechny jeho části jsou označeny komentáři.
+			
+			\vspace{10pt}
+			
+			Rozhodli jsme se tedy použít knihovnu Keras. Vytvoření a otestování jednoduchého modelu bylo velice podobné modelu TFLearn. Nejdůležitější faktor pro použití této knihovny byl však nástroj Keras Tuner, který nám umožnil najít funkční (a v rámci možností nejoptimálnější) model. Nejprve jsme se seznámili s tím, jak Tuner funguje a vyzkoušeli jsme si najít několik málo modelů a z nich vybrat ten nejlepší. Jakmile jsme měli s Tunerem nějakou zkušenost, rozšířili jsme hodnoty hyper parametrů aby bylo vyzkoušeno více modelů a jednotlivé modely vyzkoušeny vícekrát. Hledání nejlepšího modelu nakonec trvalo asi šest hodin. Po dokončení ladění jsme měli k dispozici model, který byl nakonec využit k finální klasifikaci a generování výsledků. Samotný model je popsaný v souboru model\_shape.
+			
 		\subsection{Reprodukce výsledků}
 			\begin{enumerate}
 				\item Použít python 3.6.9
 				\item Instalace potřebných balíků pomocí příkazu pip install -r requirements.txt
-				\item Nastavit globální proměnné v souboru main.py
+				\item Nastavit globálních proměnných v souboru main.py
 					\begin{itemize}
 						\item TRAIN\_DIR -- Adresář se všemi trénovacími daty
 						\item VALIDATION\_DIR -- Adresář se všemi validačními daty
@@ -41,7 +47,7 @@
 						\item LOG\_DIR -- Adresář s výsledky nástroje Keras Tuner
 					\end{itemize}
 				\item Připravit trénovací data. Při prvním použití je třeba spustit funkce create\_data() pro vytvoření trénovacích a validačních dat a funkci process\_test\_data() pro vytvoření testovacích dat. Tyto funkce vytvoří data v přípustném formátu pro model. Data jsou poté uloženy v souborech testing\_data.npy a validation\_data.npy. Při opakovaném použití není třeba data znovu vytvářet a stačí je načíst.
-				\item Při nepřítomnosti použitého modelu je dále třeba odkomentovat příslušné řádky (LINE 187-201). Nicméně hledání nejlepšího modelu může trvat i několik hodin. Pro použití stejného modelu jako jsme použili my, je náš model dostupný v GitHub repozitáři na adrese: \url{https://github.com/natiiix/vut-fit-sur/blob/master/facial_recognition/best_model.h5}
+				\item Při nepřítomnosti použitého modelu je dále třeba odkomentovat příslušné řádky (LINE 187-201). Nicméně hledání nejlepšího modelu může trvat i několik hodin. Další možností je model ručně vytvořit podle popisu v souboru model\_shape, ale to může být problamtické. Pro použití totožného modelu jako jsme použili my, je náš model dostupný v GitHub repozitáři na adrese: \url{https://github.com/natiiix/vut-fit-sur/blob/master/facial_recognition/best_model.h5}. Tento model lze jednoduše načíst provedením funkce load\_model(). Z důvodu velikosti jsme jej nemohli přiložit do odevzdaného archivu.
 				\item Pokud je přítomen model a jsou nachystány testovací data, stačí provést funkci recognize() a výsledky budou vypsány na standardní výstup. 
 			\end{enumerate}
 \end{document}
