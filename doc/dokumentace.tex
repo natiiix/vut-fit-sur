@@ -1,0 +1,103 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage[left=2cm, top=3cm, text={17cm, 24cm}]{geometry}
+\usepackage[czech]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{times}
+\usepackage[unicode]{hyperref}
+\hypersetup{colorlinks = true, hypertexnames = false}
+
+\begin{document}
+	\begin{titlepage}
+		\begin{center}
+			\textsc{\Huge Vysoké učení technické v~Brně\\
+				\vspace{0.4em}\huge Fakulta informačních technologií}
+			
+			\vspace{\stretch{0.382}}
+			
+			{\LARGE SUR\,--\,Strojové učení a rozpoznávání\\
+				\Huge Klasifikace obličejů a řeči\\ \vspace{0.3em}}
+			
+			\vspace{\stretch{0.618}}
+			
+			{\Large \hfill Martin Kostelník (\texttt{xkoste12})}\\
+			{\Large \hfill Ivo Meixner (\texttt{xmeixn00})}\\
+			{\Large \today \hfill Adam Gajda (\texttt{xgajda07})}
+		\end{center}
+	\end{titlepage}
+
+	\section{Klasifikace obličejů}
+
+		Klasifikátor obličejů je implemetován jako konvoluční neuronová síť. Systém byl vytvořen za pomoci knihovny Keras v jazyce Python.
+
+		\subsection {Průběh implementace}
+			Původní plán byl vytvořit klasifikátor obličejů pomocí knihovny TFLearn. Úspěšně jsem model vytvořil a otestoval. Bohužel jsem ale nemohl najít optimální konfiguraci neuronové sítě a model nefungoval úplně správně. Většinou označil úplně všechny data jako non-target a výsledná přesnost byla tedy 0.8571, což je ale poměr obrázků non-targetu ku všem datům. Tento model tedy není funkční a ve finálním odevzdání nebyl použit. Z kódu ovšem odstraněn nebyl, byl pouze zakomentován a všechny jeho části jsou označeny komentáři.
+			
+			\vspace{10pt}
+			
+			Rozhodli jsme se tedy použít knihovnu Keras. Vytvoření a otestování jednoduchého modelu bylo velice podobné modelu TFLearn. Nejdůležitější faktor pro použití této knihovny byl však nástroj Keras Tuner, který nám umožnil najít funkční (a v rámci možností nejoptimálnější) model. Nejprve jsme se seznámili s tím, jak Tuner funguje a vyzkoušeli jsme si najít několik málo modelů a z nich vybrat ten nejlepší. Jakmile jsme měli s Tunerem nějakou zkušenost, rozšířili jsme hodnoty hyper parametrů aby bylo vyzkoušeno více modelů a jednotlivé modely vyzkoušeny vícekrát. Hledání nejlepšího modelu nakonec trvalo asi šest hodin. Po dokončení ladění jsme měli k dispozici model, který byl nakonec využit k finální klasifikaci a generování výsledků. Samotný model je popsaný v souboru model\_shape.
+			
+		\subsection{Reprodukce výsledků}
+			Provádění příkazů se předpokládá ze složky \texttt{facial\_recognition/}
+			\begin{enumerate}
+				\item Při implementaci byl použit Python 3.6.9
+				\item Potřebné balíky lze nainstalovat příkazem \texttt{pip install -r requirements.txt}
+				\item Je třeba nastavit konstanty v souboru \texttt{main.py}
+					\begin{itemize}
+						\item TRAIN\_DIR -- Název adresáře se všemi trénovacími daty
+						\item VALIDATION\_DIR -- Název adresáře se všemi validačními daty
+						\item TEST\_DIR -- Název adresáře s testovacími daty
+						\item TARGET\_LABEL -- Prefix názvu obrázků obsahujících target
+					\end{itemize}
+				\item Příprava dat -- Při prvním použití je třeba spustit funkce \texttt{create\_data()} pro vytvoření trénovacích a validačních dat a funkci \texttt{process\_test\_data()} pro vytvoření testovacích dat. Tyto funkce vytvoří data v přípustném formátu pro model. Data jsou poté uloženy v souborech \texttt{testing\_data.npy} a \texttt{validation\_data.npy}. Při opakovaném použití není třeba data znovu vytvářet a stačí je načíst.
+				\item Při nepřítomnosti použitého modelu je dále třeba odkomentovat příslušné řádky (LINE 187-201). Nicméně hledání nejlepšího modelu může trvat i několik hodin. Další možností je model ručně vytvořit podle popisu v souboru \texttt{model\_shape}, ale to může být problematické. Pro použití totožného modelu jako jsme použili my, je náš model dostupný v GitHub repozitáři na adrese: \url{https://github.com/natiiix/vut-fit-sur/blob/master/facial_recognition/best_model.h5}. Tento model lze jednoduše načíst provedením funkce \texttt{load\_model()}. Z důvodu velikosti jsme jej nemohli přiložit do odevzdaného archivu.
+				\item Pokud je přítomen model a jsou nachystány testovací data, stačí provést funkci \texttt{recognize()} a výsledky budou vypsány na standardní výstup. 
+			\end{enumerate}
+		
+		\section{Klasifikace zvuku metodou K-NN}
+			Metoda K-NN (K-Nearest Neighbors) je poměrně jednoduchá a přitom v určitých případech dokáže dosáhnout dostatečně dobrých výsledků. Díky tomu bylo možné implementovat celý klasifikátor na 60 řádcích v Pythonu. Byly použity knihovny NumPy a SciPy, které obsahují všechny běžně používané matematické funkce.
+			
+			\subsection{Popis funkce}
+				Vstupem programu je seznam složek s trénovacími daty. Pro každou složku je nutné uvést, do které kategorie patří. Dále je potřeba předat cestu ke složce obsahující data, která mají být vyhodnocena.
+				Pro každý WAV soubor nalezený ve vstupních složkách se provedou tyto úkony:
+				
+				\begin{enumerate}
+					\item Načtení zvukových dat z disku.
+					\item Analýza dat pomocí FFT (Fast Fourier Transform) pro získání informace o dominantních frekvencích.
+					\item Vypočítání průměrné hodnoty FFT pro každou frekvenci, jelikož pracovat se všemi vzorky z každého audio souboru najednou není u K-NN z časových důvodů praktické. Běžný aritmetický průměr se ukázal jako nejpřesnější, bez výpočtu odmocniny nebo logaritmu z hodnot (aplikace těchto funkcí naopak zhoršila přesnost výsledků).
+					\item Uložení informací o frekvencích, společně s kategorií daného souboru, do seznamu vstupních dat.
+				\end{enumerate}
+			
+				Toto se provede i pro soubory, které mají být vyhodnoceny, s tím rozdílem, že kategorie není známa. Následně se začnou procházet a pro každý z nich se vyhledá K N-dimenzionálních bodů z seznamu vzniklém při zpracování vstupních dát. Z nalezených blízkých bodů se zjistí nejčastější kategorie, což je výsledná předpověď kategorie vyhodnocovaných dat.
+				
+			\subsection{Spouštění}
+				Implementace se nachází ve složce \texttt{audio\_knn/}. Provádění všech příkazů se předpokládá právě z této složky. Složka obsahuje soubor \texttt{known\_wavs.pickle}, ve kterém jsou uloženy předem zpracované trénovací audio soubory.
+				Dále se zde nachází adresář \texttt{data} obsahující všechna audio data, se kterými se má pracovat. Pokud je soubor \texttt{known\_wavs.pickle} přítomen, stačí, aby se zde nacházela složka \texttt{eval} se soubory, které mají být vyhodnoceny. Pro vygenerování tohoto souboru je nutné přidat složky s trénovacími daty (\texttt{target\_train}, \texttt{non\_target\_train}, \texttt{target\_dev}, \texttt{non\_target\_dev}).
+				Pro pokračování musí být nainstalován interpret Pythonu s verzí alespoň 3.6 (testováno na 3.7.7, ale jakákoliv 3.6+ verze by měla stačit). Předpokládá se, že tento interpret bude dostupný příkazem \texttt{python}. Pokud tomu tak není, je možné jej v příkazech nahradit cestou k příslušnému interpretu (např. \texttt{/usr/bin/python3.6}).
+				Před spuštěním je nutné nainstalovat zmíněné závislosti. To se dělá příkazem [\texttt{python -m pip install --upgrade -r requirements.txt}]. Je možné použít virtuální prostředí (neboli virtualenv), ale na to není možné napsat univerzální návod, protože jejich používání závisí na platformě.
+				Samotné spouštění lze provést příkazem [\texttt{python .}], případně [\texttt{python ./\_\_main\_\_.py}]. Výsledky jsou vypsány na standardní výstup. Pro uložení do souboru je nutné výstup přesměrovat (např. [\texttt{python . > results.txt}]).
+				
+	\section{Klasifikace zvuku metodou GMM}
+		Metoda GMM (Gaussian Mixture Model) \\
+		Program input - Složky obsahující data trénovací a evaluační. \\
+		Program output - Soubor obsahující jméno vyhodnoceného data, výsledné skóre a binární vyhodnocení zda-li se jedná o náš cíl či nikoli.
+
+			\subsection{Funkcionalita}
+				Extrakce příznaků ze zvukových nahrávek s příponou \texttt{wav} je provedena za pomoci funkce z knihovny ikrlib která nám vytvoří za pomocí segmentace, Fourieroveho spektra, banky filtru, logaritmizace a MFCC (Mel Frequency Cepstral Coeficients) slovník obsahující dvojici názvu souboru a matice hodnot. Následně budou matice sloučeny do jednoho velkého seznamu. Po nastavení proměnných obou tříd target, non\_target (apriorní pravděpodobnosti třídy, počet komponent GMM třídy, střední hodnoty, kovarianční matici, váhy komponent) se provede N počet iterací samotného trénovaní, kde se s maximální věrohodností určí nové hodnoty již dříve zmíněných proměnných, které by měly zapříčinit přesnější odhad gaussovek. Ted už jen zbývá vyhodnotit evaluační data s již natrénovaným GM modelem a vypsat výsledky do souboru.
+
+		\subsection{Reprodukce výsledků}
+			\begin{enumerate}
+				\item Při implementaci byl použi Python 3.8.2
+				\item Silně doporučujeme použít operační systém Windows (alternativně nutnost modifikovat řádek 13-14)
+				\item Potřebné balíky lze nainstalovat příkazem \texttt{pip install -r requirements.txt}
+				
+				\begin{itemize}
+					\item target\_train -- Adresář se všemi cílovými trénovacími daty s příponou \texttt{wav}
+					\item non\_target\_train -- Adresář se všemi ne-cílovými trénovacími daty s příponou \texttt{wav}
+					\item eval -- Adresář se všemi evaluačními daty s příponou \texttt{wav}
+				\end{itemize}
+			
+				\item Mít připravená data cílů, ne-cílů a data která budou použita na následnou evaluaci úspěšnosti celého systému.
+				\item Mít nastavené apriorní pravděpodobnosti (P\_t, P\_nt), počet komponent gaussovy směsice (M\_t, M\_nt) a počet iterací samotného trénování (N)
+			\end{enumerate}
+\end{document}
