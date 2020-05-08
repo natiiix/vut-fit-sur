@@ -37,7 +37,7 @@
 		\subsection{Reprodukce výsledků}
 			\begin{enumerate}
 				\item Použít python 3.6.9
-				\item Instalace potřebných balíků pomocí příkazu pip install -r requirements.txt
+				\item Instalace potřebných balíků pomocí příkazu \texttt{pip install -r requirements.txt}
 				\item Nastavit globálních proměnných v souboru main.py
 					\begin{itemize}
 						\item TRAIN\_DIR -- Adresář se všemi trénovacími daty
@@ -46,8 +46,31 @@
 						\item TEST\_DIR -- Adresář s testovacími daty
 						\item LOG\_DIR -- Adresář s výsledky nástroje Keras Tuner
 					\end{itemize}
-				\item Připravit trénovací data. Při prvním použití je třeba spustit funkce create\_data() pro vytvoření trénovacích a validačních dat a funkci process\_test\_data() pro vytvoření testovacích dat. Tyto funkce vytvoří data v přípustném formátu pro model. Data jsou poté uloženy v souborech testing\_data.npy a validation\_data.npy. Při opakovaném použití není třeba data znovu vytvářet a stačí je načíst.
-				\item Při nepřítomnosti použitého modelu je dále třeba odkomentovat příslušné řádky (LINE 187-201). Nicméně hledání nejlepšího modelu může trvat i několik hodin. Další možností je model ručně vytvořit podle popisu v souboru model\_shape, ale to může být problamtické. Pro použití totožného modelu jako jsme použili my, je náš model dostupný v GitHub repozitáři na adrese: \url{https://github.com/natiiix/vut-fit-sur/blob/master/facial_recognition/best_model.h5}. Tento model lze jednoduše načíst provedením funkce load\_model(). Z důvodu velikosti jsme jej nemohli přiložit do odevzdaného archivu.
-				\item Pokud je přítomen model a jsou nachystány testovací data, stačí provést funkci recognize() a výsledky budou vypsány na standardní výstup. 
+				\item Připravit trénovací data. Při prvním použití je třeba spustit funkce \texttt{create\_data()} pro vytvoření trénovacích a validačních dat a funkci \texttt{process\_test\_data()} pro vytvoření testovacích dat. Tyto funkce vytvoří data v přípustném formátu pro model. Data jsou poté uloženy v souborech \texttt{testing\_data.npy} a \texttt{validation\_data.npy}. Při opakovaném použití není třeba data znovu vytvářet a stačí je načíst.
+				\item Při nepřítomnosti použitého modelu je dále třeba odkomentovat příslušné řádky (LINE 187-201). Nicméně hledání nejlepšího modelu může trvat i několik hodin. Další možností je model ručně vytvořit podle popisu v souboru \texttt{model\_shape}, ale to může být problamtické. Pro použití totožného modelu jako jsme použili my, je náš model dostupný v GitHub repozitáři na adrese: \url{https://github.com/natiiix/vut-fit-sur/blob/master/facial_recognition/best_model.h5}. Tento model lze jednoduše načíst provedením funkce \texttt{load\_model()}. Z důvodu velikosti jsme jej nemohli přiložit do odevzdaného archivu.
+				\item Pokud je přítomen model a jsou nachystány testovací data, stačí provést funkci \texttt{recognize()} a výsledky budou vypsány na standardní výstup. 
 			\end{enumerate}
+		
+		\section{Klasifikace zvuku metodou K-NN}
+			Metoda K-NN (K-Nearest Neighbors) je poměrně jednoduchá a přitom v určitých případech dokáže dosáhnout dostatečně dobrých výsledků. Díky tomu bylo možné implementovat celý klasifikátor na 60 řádcích v Pythonu. Byly použity knihovny NumPy a SciPy, které obsahují všechny běžně používané matematické funkce.
+			
+			\subsection{Popis funkce}
+				Vstupem programu je seznam složek s trénovacími daty. Pro každou složku je nutné uvést, do které kategorie patří. Dále je potřeba předat cestu ke složce obsahující data, která mají být vyhodnocena.
+				Pro každý WAV soubor nalezený ve vstupních složkách se provedou tyto úkony:
+				
+				\begin{enumerate}
+					\item Načtení zvukových dat z disku.
+					\item Analýza dat pomocí FFT (Fast Fourier Transform) pro získání informace o dominantních frekvencích.
+					\item Vypočítání průměrné hodnoty FFT pro každou frekvenci, jelikož pracovat se všemi vzorky z každého audio souboru najednou není u K-NN z časových důvodů praktické. Běžný aritmetický průměr se ukázal jako nejpřesnější, bez výpočtu odmocniny nebo logaritmu z hodnot (aplikace těchto funkcí naopak zhoršila přesnost výsledků).
+					\item Uložení informací o frekvencích, společně s kategorií daného souboru, do seznamu vstupních dat.
+				\end{enumerate}
+			
+				Toto se provede i pro soubory, které mají být vyhodnoceny, s tím rozdílem, že kategorie není známa. Následně se začnou procházet a pro každý z nich se vyhledá K N-dimenzionálních bodů z seznamu vzniklém při zpracování vstupních dát. Z nalezených blízký bodů se zjistí nejčastější kategorie, což je výsledná předpověď kategorie vyhodnocovaných dat.
+				
+			\subsection{Spouštění}
+				Implementace se nachází ve složce \texttt{audio\_knn/}. Provádění všech příkazů se předpokládá právě z této složky. Složka obsahuje soubor \texttt{known\_wavs.pickle}, ve kterém jsou uloženy předem zpracované trénovací audio soubory.
+				Dále se zde nachází adresář \texttt{data} obsahující všechna audio data, se kterými se má pracovat. Pokud je soubor \texttt{known\_wavs.pickle} přítomen, stačí, aby se zde nacházela složka \texttt{eval} se soubory, které mají být vyhodnoceny. Pro vygenerování tohoto souboru je nutné přidat složky s trénovacími daty (\texttt{target\_train}, \texttt{non\_target\_train}, \texttt{target\_dev}, \texttt{non\_target\_dev}).
+				Pro pokračování musí být nainstalován interpret Pythonu s verzí alespoň 3.6 (testováno na 3.7.7, ale jakákoliv 3.6+ verze by měla stačit). Předpokládá se, že tento interpret bude dostupný příkazem \texttt{python}. Pokud tomu tak není, je možné jej v příkazech nahradit cestou k příslušnému interpretu (např. \texttt{/usr/bin/python3.6}).
+				Před spuštěním je nutné nainstalovat zmíněné závislosti. To se dělá příkazem [\texttt{python -m pip install --upgrade -r requirements.txt}]. Je možné použít virtuální prostředí (neboli virtualenv), ale na to není možné napsat univerzální návod, protože jejich používání závisí na platformě.
+				Samotné spouštění lze provést příkazem [\texttt{python .}], případně [\texttt{python ./\_\_main\_\_.py}]. Výsledky jsou vypsány na standardní výstup. Pro uložení do souboru je nutné výstup přesměrovat (např. [\texttt{python . > results.txt}]).
 \end{document}
