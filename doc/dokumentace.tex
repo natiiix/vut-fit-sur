@@ -25,4 +25,23 @@
 			{\Large \today \hfill Adam Gajda (xgajda07)}
 		\end{center}
 	\end{titlepage}
+
+	\section{Rozpoznávání obličejů}
+		
+		\subsection{Reprodukce výsledků}
+			\begin{enumerate}
+				\item Použít python 3.6.9
+				\item Instalace potřebných balíků pomocí příkazu pip install -r requirements.txt
+				\item Nastavit globální proměnné v souboru main.py
+					\begin{itemize}
+						\item TRAIN\_DIR -- Adresář se všemi trénovacími daty
+						\item VALIDATION\_DIR -- Adresář se všemi validačními daty
+						\item TARGET\_LABEL -- Prefix obrázků obsahujících target
+						\item TEST\_DIR -- Adresář s testovacími daty
+						\item LOG\_DIR -- Adresář s výsledky nástroje Keras Tuner
+					\end{itemize}
+				\item Připravit trénovací data. Při prvním použití je třeba spustit funkce create\_data() pro vytvoření trénovacích a validačních dat a funkci process\_test\_data() pro vytvoření testovacích dat. Tyto funkce vytvoří data v přípustném formátu pro model. Data jsou poté uloženy v souborech testing\_data.npy a validation\_data.npy. Při opakovaném použití není třeba data znovu vytvářet a stačí je načíst.
+				\item Při nepřítomnosti použitého modelu je dále třeba odkomentovat příslušné řádky (LINE 187-201). Nicméně hledání nejlepšího modelu může trvat i několik hodin. Pro použití stejného modelu jako jsme použili my, je náš model dostupný v GitHub repozitáři na adrese: \url{https://github.com/natiiix/vut-fit-sur/blob/master/facial_recognition/best_model.h5}
+				\item Pokud je přítomen model a jsou nachystány testovací data, stačí provést funkci recognize() a výsledky budou vypsány na standardní výstup. 
+			\end{enumerate}
 \end{document}
